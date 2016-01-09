@@ -1,0 +1,5 @@
+mvn eclipse:eclipse
+mvn package
+mvn compile
+
+Window -> Preferences -> Maven -> Errors/Warnings -> Plugin execution not covered by lifecycle configuration = Warning
