@@ -15,10 +15,21 @@
  */
 package okhttp3.internal;
 
+import static okhttp3.internal.Internal.logger;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+
 import javax.net.ssl.SSLSocket;
+
 import okhttp3.Address;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -36,7 +47,7 @@ import okhttp3.internal.io.RealConnection;
  */
 public abstract class Internal {
   public static final Logger logger = Logger.getLogger(OkHttpClient.class.getName());
-
+  
   public static void initializeInstanceForTests() {
     // Needed in tests to ensure that the instance is actually pointing to something.
     new OkHttpClient();

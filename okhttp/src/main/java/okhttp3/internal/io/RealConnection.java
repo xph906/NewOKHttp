@@ -316,6 +316,17 @@ public final class RealConnection implements Connection {
   }
 
   /** Returns true if this connection is ready to host new streams. */
+  //The basic idea of this function is to read from the server;
+  // 1.If there are contents, source.exhausted() will block,
+  //   Since before calling exhausted(), the timeout has been set as
+  //   a minimum value and thus a timeout exception will be thrown.
+  //   In this case, the function will return true, meaning that we can 
+  //   reuse this connection.
+  // 2.If there are no contents from server, exhausted() will return true
+  //   and the function will return false.
+  // Note that reading/writing to a socket connection is the only way to 
+  // know if a connection is connected or not; 
+  // socket.isConnected() is NOT working
   public boolean isHealthy(boolean doExtensiveChecks) {
     if (socket.isClosed() || socket.isInputShutdown() || socket.isOutputShutdown()) {
       return false;

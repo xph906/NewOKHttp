@@ -23,11 +23,14 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
 import okhttp3.internal.Internal;
 import okhttp3.internal.InternalCache;
 import okhttp3.internal.RouteDatabase;
@@ -35,6 +38,9 @@ import okhttp3.internal.Util;
 import okhttp3.internal.http.StreamAllocation;
 import okhttp3.internal.io.RealConnection;
 import okhttp3.internal.tls.OkHostnameVerifier;
+
+import java.util.logging.Level;
+import static okhttp3.internal.Internal.logger;
 
 /**
  * Factory for {@linkplain Call calls}, which can be used to send HTTP requests and read their
@@ -297,7 +303,12 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
    * Prepares the {@code request} to be executed at some point in the future.
    */
   @Override public Call newCall(Request request) {
-    return new RealCall(this, request);
+	long startTime = System.currentTimeMillis();
+    Call c = new RealCall(this, request);
+    long endTime = System.currentTimeMillis();
+    long diffTime = endTime - startTime;
+    //logger.log(Level.INFO,"OkHTTPClient: Latency of creating RealCall: "+diffTime);
+    return c;
   }
 
   public Builder newBuilder() {

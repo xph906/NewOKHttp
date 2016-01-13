@@ -67,6 +67,9 @@ import static okhttp3.internal.http.StatusLine.HTTP_CONTINUE;
 import static okhttp3.internal.http.StatusLine.HTTP_PERM_REDIRECT;
 import static okhttp3.internal.http.StatusLine.HTTP_TEMP_REDIRECT;
 
+import java.util.logging.Level;
+import static okhttp3.internal.Internal.logger;
+
 /**
  * Handles a single HTTP request/response pair. Each HTTP engine follows this lifecycle: <ol> <li>It
  * is created. <li>The HTTP request message is sent with sendRequest(). Once the request is sent it
@@ -202,7 +205,9 @@ public final class HttpEngine {
     cacheStrategy = new CacheStrategy.Factory(now, request, cacheCandidate).get();
     networkRequest = cacheStrategy.networkRequest;
     cacheResponse = cacheStrategy.cacheResponse;
-
+    long t2 = System.currentTimeMillis();
+    logger.log(Level.INFO, String.format("HTTPEngine Search cache: %dms", t2 - now ));
+    
     if (responseCache != null) {
       responseCache.trackResponse(cacheStrategy);
     }
@@ -212,7 +217,11 @@ public final class HttpEngine {
     }
 
     if (networkRequest != null) {
+    	long t3 = System.currentTimeMillis();
       httpStream = connect();
+      	long t4 = System.currentTimeMillis();
+      	logger.log(Level.INFO, String.format("HTTPEngine connect: %dms", t4 - t3 ));
+      	
       httpStream.setHttpEngine(this);
 
       // If the caller's control flow writes the request body, we need to create that stream

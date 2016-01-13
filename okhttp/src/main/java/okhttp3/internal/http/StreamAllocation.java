@@ -155,6 +155,7 @@ public final class StreamAllocation {
       if (stream != null) throw new IllegalStateException("stream != null");
       if (canceled) throw new IOException("Canceled");
 
+      // For the first time, this.connection equals to null!
       RealConnection allocatedConnection = this.connection;
       if (allocatedConnection != null && !allocatedConnection.noNewStreams) {
         return allocatedConnection;
