@@ -307,7 +307,7 @@ public final class OkHttpClient implements Cloneable, Call.Factory {
     Call c = new RealCall(this, request);
     long endTime = System.currentTimeMillis();
     long diffTime = endTime - startTime;
-    //logger.log(Level.INFO,"OkHTTPClient: Latency of creating RealCall: "+diffTime);
+    logger.log(Level.INFO,"OkHTTPClient: Latency of creating RealCall: "+diffTime);
     return c;
   }
 

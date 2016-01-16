@@ -22,18 +22,22 @@ import java.lang.ref.WeakReference;
 import java.net.ProtocolException;
 import java.net.SocketTimeoutException;
 import java.security.cert.CertificateException;
+import java.util.logging.Level;
+
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
+
 import okhttp3.Address;
 import okhttp3.ConnectionPool;
+import okhttp3.Request;
 import okhttp3.Route;
 import okhttp3.internal.Internal;
 import okhttp3.internal.RouteDatabase;
 import okhttp3.internal.Util;
 import okhttp3.internal.io.RealConnection;
 import okio.Sink;
-
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static okhttp3.internal.Internal.logger;
 
 /**
  * This class coordinates the relationship between three entities:
@@ -76,8 +80,17 @@ public final class StreamAllocation {
   public final Address address;
   private Route route;
   private final ConnectionPool connectionPool;
+  
+  /*NetProphet field*/
+  private Request request;
+  public Request getRequest() {
+	return request;
+  }
+  public void setRequest(Request request) {
+	this.request = request;
+  }
 
-  // State guarded by connectionPool.
+// State guarded by connectionPool.
   private RouteSelector routeSelector;
   private RealConnection connection;
   private boolean released;
@@ -88,12 +101,16 @@ public final class StreamAllocation {
     this.connectionPool = connectionPool;
     this.address = address;
     this.routeSelector = new RouteSelector(address, routeDatabase());
+    /*NetProphet Initialization*/
+    this.request = null;
   }
 
   public HttpStream newStream(int connectTimeout, int readTimeout, int writeTimeout,
-      boolean connectionRetryEnabled, boolean doExtensiveHealthChecks)
+      boolean connectionRetryEnabled, boolean doExtensiveHealthChecks, Request req)
       throws RouteException, IOException {
     try {
+    	this.request = req;
+    	
       RealConnection resultConnection = findHealthyConnection(connectTimeout, readTimeout,
           writeTimeout, connectionRetryEnabled, doExtensiveHealthChecks);
 
@@ -162,21 +179,38 @@ public final class StreamAllocation {
       }
 
       // Attempt to get a connection from the pool.
+      long t1 = System.currentTimeMillis();
+      long t2 = 0;
       RealConnection pooledConnection = Internal.instance.get(connectionPool, address, this);
       if (pooledConnection != null) {
         this.connection = pooledConnection;
+        t2 = System.currentTimeMillis();
+        logger.log(Level.INFO, 
+        		String.format("findConnection:   1. searching pool: %d", t2-t1));
+        request.getRequestTimingANP().setConnSetupEndTimeANP(0);
         return pooledConnection;
       }
-
+      t2 = System.currentTimeMillis();
+      logger.log(Level.INFO, 
+      		String.format("findConnection:   1. searching pool: %d", t2-t1));
+      
       selectedRoute = route;
     }
 
     if (selectedRoute == null) {
-      selectedRoute = routeSelector.next();
+    	long t5 = System.currentTimeMillis();
+    	request.getRequestTimingANP().setDnsStartTimeANP(t5);
+        selectedRoute = routeSelector.next();
+      	long t6 = System.currentTimeMillis();
+      	request.getRequestTimingANP().setDnsEndTimeANP(t6);
+      	logger.log(Level.INFO,
+      			String.format("find route(DNS) information: %d", t6 - t5));
       synchronized (connectionPool) {
         route = selectedRoute;
       }
     }
+    long t3 = System.currentTimeMillis();
+    request.getRequestTimingANP().setConnSetupStartTimeANP(t3);
     RealConnection newConnection = new RealConnection(selectedRoute);
     acquire(newConnection);
 
@@ -185,11 +219,15 @@ public final class StreamAllocation {
       this.connection = newConnection;
       if (canceled) throw new IOException("Canceled");
     }
-
+    
     newConnection.connect(connectTimeout, readTimeout, writeTimeout, address.connectionSpecs(),
         connectionRetryEnabled);
     routeDatabase().connected(newConnection.route());
-
+    long t4 = System.currentTimeMillis();
+    request.getRequestTimingANP().setConnSetupEndTimeANP(t4);
+    logger.log(Level.INFO, 
+    		String.format("findConnection:   2. create new connection: %d", t4-t3));
+    
     return newConnection;
   }
 

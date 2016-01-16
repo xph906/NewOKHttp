@@ -25,10 +25,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
+
 import okhttp3.Address;
 import okhttp3.HttpUrl;
 import okhttp3.Route;
 import okhttp3.internal.RouteDatabase;
+import static okhttp3.internal.Internal.logger;
 
 /**
  * Selects routes to connect to an origin server. Each connection requires a choice of proxy server,
@@ -136,7 +139,11 @@ public final class RouteSelector {
           + "; exhausted proxy configurations: " + proxies);
     }
     Proxy result = proxies.get(nextProxyIndex++);
+    long t1 = System.currentTimeMillis();
     resetNextInetSocketAddress(result);
+    long t2 = System.currentTimeMillis();
+    logger.log(Level.INFO, 
+    		String.format("DNS/Proxy lookup/Select delay %d", t2-t1));
     return result;
   }
 
@@ -170,11 +177,16 @@ public final class RouteSelector {
       inetSocketAddresses.add(InetSocketAddress.createUnresolved(socketHost, socketPort));
     } else {
       // Try each address for best behavior in mixed IPv4/IPv6 environments.
+    	long t1 = System.currentTimeMillis();
+    	//OkHTTP will call inetAddress::getAllByName to get IP resutls
       List<InetAddress> addresses = address.dns().lookup(socketHost);
       for (int i = 0, size = addresses.size(); i < size; i++) {
         InetAddress inetAddress = addresses.get(i);
         inetSocketAddresses.add(new InetSocketAddress(inetAddress, socketPort));
       }
+        long t2 = System.currentTimeMillis();
+        logger.log(Level.INFO, 
+        		String.format("DNS lookup delay %d", t2-t1));
     }
 
     nextInetSocketAddressIndex = 0;

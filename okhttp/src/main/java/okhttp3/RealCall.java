@@ -17,10 +17,13 @@ package okhttp3;
 
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 
+import okhttp3.Request.RequestTimingANP;
 import okhttp3.internal.CustomRecordFormatter;
 import okhttp3.internal.NamedRunnable;
 import okhttp3.internal.http.HttpEngine;
@@ -30,7 +33,7 @@ import okhttp3.internal.http.StreamAllocation;
 import static okhttp3.internal.Internal.logger;
 import static okhttp3.internal.http.HttpEngine.MAX_FOLLOW_UPS;
 
-final class RealCall implements Call {
+public final class RealCall implements Call {
 	private final OkHttpClient client;
 
 	// Guarded by this.
@@ -43,16 +46,63 @@ final class RealCall implements Call {
 	 */
 	Request originalRequest;
 	HttpEngine engine;
+	
+	/* NetProphet fields */
+	private List<String> urlsANP;
+	private List<RequestTimingANP> timingsANP;
+	private long startTimeANP;
+	private long endTimeANP;
 
 	protected RealCall(OkHttpClient client, Request originalRequest) {
 		this.client = client;
 		this.originalRequest = originalRequest;
+		
+		/* NetProphet initialization*/
+		urlsANP = new ArrayList<String>();
+		timingsANP = new ArrayList<RequestTimingANP>();
+		startTimeANP = 0;
+		endTimeANP = 0;
 	}
 
+	/* NetProphet Getter and Setter */
+	public List<String> getUrlsANP() {
+		return urlsANP;
+	}
+
+	public void setUrlsANP(List<String> urlsANP) {
+		this.urlsANP = urlsANP;
+	}
+
+	public List<RequestTimingANP> getTimingsANP() {
+		return timingsANP;
+	}
+
+	public void setTimingsANP(List<RequestTimingANP> timingsANP) {
+		this.timingsANP = timingsANP;
+	}
+
+	public long getStartTimeANP() {
+		return startTimeANP;
+	}
+
+	public void setStartTimeANP(long startTimeANP) {
+		this.startTimeANP = startTimeANP;
+	}
+
+	public long getEndTimeANP() {
+		return endTimeANP;
+	}
+
+	public void setEndTimeANP(long endTimeANP) {
+		this.endTimeANP = endTimeANP;
+	}
+	//End
+	
 	@Override
 	public Request request() {
 		return originalRequest;
 	}
+
 
 	@Override
 	public Response execute() throws IOException {
@@ -191,7 +241,12 @@ final class RealCall implements Call {
 			throws IOException {
 		Interceptor.Chain chain = new ApplicationInterceptorChain(0,
 				originalRequest, forWebSocket);
-		return chain.proceed(originalRequest);
+		startTimeANP = System.currentTimeMillis();
+		Response rs = chain.proceed(originalRequest);
+		endTimeANP = System.currentTimeMillis();
+		logger.log(Level.INFO, String.format("overall delay is: %d for URL: %s", 
+				endTimeANP-startTimeANP, originalRequest.url().toString()));
+		return rs;
 	}
 
 	class ApplicationInterceptorChain implements Interceptor.Chain {
@@ -228,7 +283,7 @@ final class RealCall implements Call {
 		// -> defaultAppInterceptor -> networking inteceptor.
 		@Override
 		public Response proceed(Request request) throws IOException {
-			long t1 = System.nanoTime();
+			long t1 = System.currentTimeMillis();
 			logger.info(String.format("DefaultInterceptor Sending request %s",
 					request.url()));
 
@@ -243,20 +298,21 @@ final class RealCall implements Call {
 					throw new NullPointerException("application interceptor "
 							+ interceptor + " returned null");
 				}
-				long t2 = System.nanoTime();
-				logger.info(String
-						.format("DefaultInterceptor  WITH  Interceptor Received response %s for %.1fms",
-								request.url(), (t2 - t1) / 1e6d));
+				long t2 = System.currentTimeMillis();
+				//logger.info(String
+				//		.format("DefaultInterceptor  WITH  Interceptor Received response %s for %dms",
+				//				request.url(), t2-t1));
+				
 				return interceptedResponse;
 			}
 
 			// No more interceptors. Do HTTP.
 			Response rs = getResponse(request, forWebSocket);
 
-			long t2 = System.nanoTime();
+			long t2 = System.currentTimeMillis();
 			logger.info(String
-					.format("DefaultInterceptor WITHOUT Interceptor Received response %s for %.1fms",
-							request.url(), (t2 - t1) / 1e6d));
+					.format("DefaultInterceptor WITHOUT Interceptor Received response %s for %dms",
+							request.url(), t2 - t1));
 			return rs;
 		}
 	}
@@ -268,7 +324,6 @@ final class RealCall implements Call {
 	Response getResponse(Request request, boolean forWebSocket)
 			throws IOException {
 		// Copy body metadata to the appropriate request headers.
-		long t1 = System.currentTimeMillis();
 		RequestBody body = request.body();
 		if (body != null) {
 			Request.Builder requestBuilder = request.newBuilder();
@@ -290,13 +345,12 @@ final class RealCall implements Call {
 
 			request = requestBuilder.build();
 		}
-		long t2 = System.currentTimeMillis();
-
+		
 		// Create the initial HTTP engine. Retries and redirects need new engine
 		// for each attempt.
 		engine = new HttpEngine(client, request, false, false, forWebSocket,
 				null, null, null);
-
+		
 		int followUpCount = 0;
 		while (true) {
 			if (canceled) {
@@ -305,31 +359,52 @@ final class RealCall implements Call {
 			}
 
 			boolean releaseConnection = true;
-			long t3 = 0, t4 = 0, t5 = 0, t6 = 0, t7 = 0, t8 = 0;
+			long t3 = 0, t4 = 0, t5 = 0, t6 = 0, t7 = 0;
 			try {
+				//FIXME: AdsProphet: test redirection requests...
+				urlsANP.add(engine.getRequest().url().toString());
 				t3 = System.currentTimeMillis();
+				engine.getRequest().getRequestTimingANP().setReqStartTimeANP(t3);
+				
 				engine.sendRequest();
+				
 				t4 = System.currentTimeMillis();
+				logger.info(String.format(
+						"HTTPEngine sendRequest:%d", t4 - t3));
+				
 				engine.readResponse();
+				
 				t5 = System.currentTimeMillis();
 				logger.info(String.format(
-						"HTTPEngine sendRequest:%d, readResponse %d", t4 - t3,
-						t5 - t4));
+						"HTTPEngine readResponse %d", t5 - t4));
+				engine.getRequest().getRequestTimingANP().setRespEndTimeANP(t5);
+				timingsANP.add(engine.getRequest().getRequestTimingANP());
 				releaseConnection = false;
 			} catch (RequestException e) {
 				// The attempt to interpret the request failed. Give up.
+				engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+				engine.getRequest().getRequestTimingANP().setErrorString(e.toString());
+				engine.getRequest().getRequestTimingANP().
+					setRespEndTimeANP(System.currentTimeMillis());
+				timingsANP.add(request.getRequestTimingANP());
 				throw e.getCause();
 			} catch (RouteException e) {
 				// The attempt to connect via a route failed. The request will
 				// not have been sent.
+				engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+				engine.getRequest().getRequestTimingANP().setErrorString(e.toString());		
 				t6 = System.currentTimeMillis();
 				HttpEngine retryEngine = engine.recover(
 						e.getLastConnectException(), null);
+				
 				t7 = System.currentTimeMillis();
 				logger.info(String
 						.format("HTTPEngineRecover fromLastEngine:%d, recover:%d [RouteException]",
 								t6 - t3, t7 - t6));
-
+				
+				engine.getRequest().getRequestTimingANP().
+					setRespEndTimeANP(t7);
+				timingsANP.add(request.getRequestTimingANP());
 				if (retryEngine != null) {
 					releaseConnection = false;
 					engine = retryEngine;
@@ -341,18 +416,25 @@ final class RealCall implements Call {
 			} catch (IOException e) {
 				// An attempt to communicate with a server failed. The request
 				// may have been sent.
+				engine.getRequest().getRequestTimingANP().setSuccessfulANP(false);
+				engine.getRequest().getRequestTimingANP().setErrorString(e.toString());		
 				t6 = System.currentTimeMillis();
+				
 				HttpEngine retryEngine = engine.recover(e, null);
+				
 				t7 = System.currentTimeMillis();
 				logger.info(String
 						.format("HTTPEngineRecover fromLastEngine:%d, recover:%d [IOException]",
-								t6 - t3, t7 - t6));
+								t6 - t3, t7 - t6));	
+				engine.getRequest().getRequestTimingANP().
+					setRespEndTimeANP(t7);
+				timingsANP.add(request.getRequestTimingANP());
 				if (retryEngine != null) {
 					releaseConnection = false;
 					engine = retryEngine;
 					continue;
 				}
-
+				
 				// Give up; recovery is not possible.
 				throw e;
 			} finally {
@@ -372,7 +454,7 @@ final class RealCall implements Call {
 				}
 				return response;
 			}
-
+			
 			StreamAllocation streamAllocation = engine.close();
 
 			if (++followUpCount > MAX_FOLLOW_UPS) {
@@ -389,6 +471,8 @@ final class RealCall implements Call {
 			request = followUp;
 			engine = new HttpEngine(client, request, false, false,
 					forWebSocket, streamAllocation, null, response);
+			
+			
 		}
 	}
 }

@@ -17,244 +17,426 @@ package okhttp3;
 
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
+
 import okhttp3.internal.http.HttpMethod;
 
 /**
- * An HTTP request. Instances of this class are immutable if their {@link #body} is null or itself
- * immutable.
+ * An HTTP request. Instances of this class are immutable if their {@link #body}
+ * is null or itself immutable.
  */
 public final class Request {
-  private final HttpUrl url;
-  private final String method;
-  private final Headers headers;
-  private final RequestBody body;
-  private final Object tag;
+	private final HttpUrl url;
+	private final String method;
+	private final Headers headers;
+	private final RequestBody body;
+	private final Object tag;
 
-  private volatile URI javaNetUri; // Lazily initialized.
-  private volatile CacheControl cacheControl; // Lazily initialized.
+	/* NetProphet field */
+	private RequestTimingANP requestTimingANP;
 
-  private Request(Builder builder) {
-    this.url = builder.url;
-    this.method = builder.method;
-    this.headers = builder.headers.build();
-    this.body = builder.body;
-    this.tag = builder.tag != null ? builder.tag : this;
-  }
+	private volatile URI javaNetUri; // Lazily initialized.
+	private volatile CacheControl cacheControl; // Lazily initialized.
 
-  public HttpUrl url() {
-    return url;
-  }
+	/* NetProphet Class */
+	public class RequestTimingANP {
+		private long reqStartTimeANP;
+		private long dnsStartTimeANP;
+		private long dnsEndTimeANP;
+		private long connSetupStartTimeANP;
+		private long tlsConnSetupStartTimeANP; // Not used for now
+		private long tlsConnSetupEndTimeANP; // Not used for now
+		private long connSetupEndTimeANP;
+		private long reqWriteStartTimeANP;
+		private long reqWriteEndTimeANP;
+		private long respStartTimeANP;
+		private long respEndTimeANP;
+		private boolean useCacheANP; 
+		
+		private boolean isSuccessfulANP; // set to false only when retry also failed
+    	private String errorString;
+    	
+    RequestTimingANP() {
+			/* Initialize NetProphet Fields */
+			this.reqStartTimeANP = 0;
+			this.dnsEndTimeANP = 0;
+			this.dnsStartTimeANP = 0;
+			this.connSetupEndTimeANP = 0;
+			this.connSetupStartTimeANP = 0;
+			this.tlsConnSetupEndTimeANP = 0;
+			this.tlsConnSetupStartTimeANP = 0;
+			this.connSetupStartTimeANP = 0;
+			this.reqWriteEndTimeANP = 0;
+			this.reqWriteStartTimeANP = 0;
+			this.respStartTimeANP = 0;
+			this.respEndTimeANP = 0;
+			this.useCacheANP = false;
+			this.isSuccessfulANP = true;
+			errorString = "";
+		}
 
-  public String method() {
-    return method;
-  }
+		public boolean isSuccessfulANP() {
+		return isSuccessfulANP;
+	}
 
-  public Headers headers() {
-    return headers;
-  }
+	public void setSuccessfulANP(boolean isSuccessfulANP) {
+		this.isSuccessfulANP = isSuccessfulANP;
+	}
 
-  public String header(String name) {
-    return headers.get(name);
-  }
+	public String getErrorString() {
+		return errorString;
+	}
 
-  public List<String> headers(String name) {
-    return headers.values(name);
-  }
+	public void setErrorString(String errorString) {
+		this.errorString = errorString;
+	}
 
-  public RequestBody body() {
-    return body;
-  }
+		/* NetProphet Getters and Setters */
+		public long getReqStartTimeANP() {
+			return reqStartTimeANP;
+		}
 
-  public Object tag() {
-    return tag;
-  }
+		public void setReqStartTimeANP(long reqStartTimeANP) {
+			this.reqStartTimeANP = reqStartTimeANP;
+		}
 
-  public Builder newBuilder() {
-    return new Builder(this);
-  }
+		public long getDnsStartTimeANP() {
+			return dnsStartTimeANP;
+		}
 
-  /**
-   * Returns the cache control directives for this response. This is never null, even if this
-   * response contains no {@code Cache-Control} header.
-   */
-  public CacheControl cacheControl() {
-    CacheControl result = cacheControl;
-    return result != null ? result : (cacheControl = CacheControl.parse(headers));
-  }
+		public void setDnsStartTimeANP(long dnsStartTimeANP) {
+			this.dnsStartTimeANP = dnsStartTimeANP;
+		}
 
-  public boolean isHttps() {
-    return url.isHttps();
-  }
+		public long getDnsEndTimeANP() {
+			return dnsEndTimeANP;
+		}
 
-  @Override public String toString() {
-    return "Request{method="
-        + method
-        + ", url="
-        + url
-        + ", tag="
-        + (tag != this ? tag : null)
-        + '}';
-  }
+		public void setDnsEndTimeANP(long dnsEndTimeANP) {
+			this.dnsEndTimeANP = dnsEndTimeANP;
+		}
 
-  public static class Builder {
-    private HttpUrl url;
-    private String method;
-    private Headers.Builder headers;
-    private RequestBody body;
-    private Object tag;
+		public long getConnSetupStartTimeANP() {
+			return connSetupStartTimeANP;
+		}
 
-    public Builder() {
-      this.method = "GET";
-      this.headers = new Headers.Builder();
-    }
+		public void setConnSetupStartTimeANP(long connSetupStartTimeANP) {
+			this.connSetupStartTimeANP = connSetupStartTimeANP;
+		}
 
-    private Builder(Request request) {
-      this.url = request.url;
-      this.method = request.method;
-      this.body = request.body;
-      this.tag = request.tag;
-      this.headers = request.headers.newBuilder();
-    }
+		public long getTlsConnSetupStartTimeANP() {
+			return tlsConnSetupStartTimeANP;
+		}
 
-    public Builder url(HttpUrl url) {
-      if (url == null) throw new IllegalArgumentException("url == null");
-      this.url = url;
-      return this;
-    }
+		public void setTlsConnSetupStartTimeANP(long tlsConnSetupStartTimeANP) {
+			this.tlsConnSetupStartTimeANP = tlsConnSetupStartTimeANP;
+		}
 
-    /**
-     * Sets the URL target of this request.
-     *
-     * @throws IllegalArgumentException if {@code url} is not a valid HTTP or HTTPS URL. Avoid this
-     * exception by calling {@link HttpUrl#parse}; it returns null for invalid URLs.
-     */
-    public Builder url(String url) {
-      if (url == null) throw new IllegalArgumentException("url == null");
+		public long getTlsConnSetupEndTimeANP() {
+			return tlsConnSetupEndTimeANP;
+		}
 
-      // Silently replace websocket URLs with HTTP URLs.
-      if (url.regionMatches(true, 0, "ws:", 0, 3)) {
-        url = "http:" + url.substring(3);
-      } else if (url.regionMatches(true, 0, "wss:", 0, 4)) {
-        url = "https:" + url.substring(4);
-      }
+		public void setTlsConnSetupEndTimeANP(long tlsConnSetupEndTimeANP) {
+			this.tlsConnSetupEndTimeANP = tlsConnSetupEndTimeANP;
+		}
 
-      HttpUrl parsed = HttpUrl.parse(url);
-      if (parsed == null) throw new IllegalArgumentException("unexpected url: " + url);
-      return url(parsed);
-    }
+		public long getConnSetupEndTimeANP() {
+			return connSetupEndTimeANP;
+		}
 
-    /**
-     * Sets the URL target of this request.
-     *
-     * @throws IllegalArgumentException if the scheme of {@code url} is not {@code http} or {@code
-     * https}.
-     */
-    public Builder url(URL url) {
-      if (url == null) throw new IllegalArgumentException("url == null");
-      HttpUrl parsed = HttpUrl.get(url);
-      if (parsed == null) throw new IllegalArgumentException("unexpected url: " + url);
-      return url(parsed);
-    }
+		public void setConnSetupEndTimeANP(long connSetupEndTimeANP) {
+			this.connSetupEndTimeANP = connSetupEndTimeANP;
+		}
 
-    /**
-     * Sets the header named {@code name} to {@code value}. If this request already has any headers
-     * with that name, they are all replaced.
-     */
-    public Builder header(String name, String value) {
-      headers.set(name, value);
-      return this;
-    }
+		public long getReqWriteStartTimeANP() {
+			return reqWriteStartTimeANP;
+		}
 
-    /**
-     * Adds a header with {@code name} and {@code value}. Prefer this method for multiply-valued
-     * headers like "Cookie".
-     *
-     * <p>Note that for some headers including {@code Content-Length} and {@code Content-Encoding},
-     * OkHttp may replace {@code value} with a header derived from the request body.
-     */
-    public Builder addHeader(String name, String value) {
-      headers.add(name, value);
-      return this;
-    }
+		public void setReqWriteStartTimeANP(long reqWriteStartTimeANP) {
+			this.reqWriteStartTimeANP = reqWriteStartTimeANP;
+		}
 
-    public Builder removeHeader(String name) {
-      headers.removeAll(name);
-      return this;
-    }
+		public long getReqWriteEndTimeANP() {
+			return reqWriteEndTimeANP;
+		}
 
-    /** Removes all headers on this builder and adds {@code headers}. */
-    public Builder headers(Headers headers) {
-      this.headers = headers.newBuilder();
-      return this;
-    }
+		public void setReqWriteEndTimeANP(long reqWriteEndTimeANP) {
+			this.reqWriteEndTimeANP = reqWriteEndTimeANP;
+		}
 
-    /**
-     * Sets this request's {@code Cache-Control} header, replacing any cache control headers already
-     * present. If {@code cacheControl} doesn't define any directives, this clears this request's
-     * cache-control headers.
-     */
-    public Builder cacheControl(CacheControl cacheControl) {
-      String value = cacheControl.toString();
-      if (value.isEmpty()) return removeHeader("Cache-Control");
-      return header("Cache-Control", value);
-    }
+		public long getRespStartTimeANP() {
+			return respStartTimeANP;
+		}
 
-    public Builder get() {
-      return method("GET", null);
-    }
+		public void setRespStartTimeANP(long respStartTimeANP) {
+			this.respStartTimeANP = respStartTimeANP;
+		}
 
-    public Builder head() {
-      return method("HEAD", null);
-    }
+		public long getRespEndTimeANP() {
+			return respEndTimeANP;
+		}
 
-    public Builder post(RequestBody body) {
-      return method("POST", body);
-    }
+		public void setRespEndTimeANP(long respEndTimeANP) {
+			this.respEndTimeANP = respEndTimeANP;
+		}
 
-    public Builder delete(RequestBody body) {
-      return method("DELETE", body);
-    }
+		public boolean getUseCacheANP() {
+			return useCacheANP;
+		}
 
-    public Builder delete() {
-      return delete(RequestBody.create(null, new byte[0]));
-    }
+		public void setUseCacheANP(boolean useCacheANP) {
+			this.useCacheANP = useCacheANP;
+		}
+		// End
+	}
 
-    public Builder put(RequestBody body) {
-      return method("PUT", body);
-    }
+	private Request(Builder builder) {
+		this.url = builder.url;
+		this.method = builder.method;
+		this.headers = builder.headers.build();
+		this.body = builder.body;
+		this.tag = builder.tag != null ? builder.tag : this;
 
-    public Builder patch(RequestBody body) {
-      return method("PATCH", body);
-    }
+		/* NetProphet Initialization */
+		requestTimingANP = new RequestTimingANP();
+	}
+    /* NetProphet Getter and Setter */
+	public RequestTimingANP getRequestTimingANP() {
+		return requestTimingANP;
+	}
 
-    public Builder method(String method, RequestBody body) {
-      if (method == null || method.length() == 0) {
-        throw new IllegalArgumentException("method == null || method.length() == 0");
-      }
-      if (body != null && !HttpMethod.permitsRequestBody(method)) {
-        throw new IllegalArgumentException("method " + method + " must not have a request body.");
-      }
-      if (body == null && HttpMethod.requiresRequestBody(method)) {
-        throw new IllegalArgumentException("method " + method + " must have a request body.");
-      }
-      this.method = method;
-      this.body = body;
-      return this;
-    }
+	public void setRequestTimingANP(RequestTimingANP requestTimingANP) {
+		this.requestTimingANP = requestTimingANP;
+	}
 
-    /**
-     * Attaches {@code tag} to the request. It can be used later to cancel the request. If the tag
-     * is unspecified or null, the request is canceled by using the request itself as the tag.
-     */
-    public Builder tag(Object tag) {
-      this.tag = tag;
-      return this;
-    }
+	public HttpUrl url() {
+		return url;
+	}
 
-    public Request build() {
-      if (url == null) throw new IllegalStateException("url == null");
-      return new Request(this);
-    }
-  }
+	public String method() {
+		return method;
+	}
+
+	public Headers headers() {
+		return headers;
+	}
+
+	public String header(String name) {
+		return headers.get(name);
+	}
+
+	public List<String> headers(String name) {
+		return headers.values(name);
+	}
+
+	public RequestBody body() {
+		return body;
+	}
+
+	public Object tag() {
+		return tag;
+	}
+
+	public Builder newBuilder() {
+		return new Builder(this);
+	}
+
+	/**
+	 * Returns the cache control directives for this response. This is never
+	 * null, even if this response contains no {@code Cache-Control} header.
+	 */
+	public CacheControl cacheControl() {
+		CacheControl result = cacheControl;
+		return result != null ? result : (cacheControl = CacheControl
+				.parse(headers));
+	}
+
+	public boolean isHttps() {
+		return url.isHttps();
+	}
+
+	@Override
+	public String toString() {
+		return "Request{method=" + method + ", url=" + url + ", tag="
+				+ (tag != this ? tag : null) + '}';
+	}
+
+	public static class Builder {
+		private HttpUrl url;
+		private String method;
+		private Headers.Builder headers;
+		private RequestBody body;
+		private Object tag;
+
+		public Builder() {
+			this.method = "GET";
+			this.headers = new Headers.Builder();
+		}
+
+		private Builder(Request request) {
+			this.url = request.url;
+			this.method = request.method;
+			this.body = request.body;
+			this.tag = request.tag;
+			this.headers = request.headers.newBuilder();
+		}
+
+		public Builder url(HttpUrl url) {
+			if (url == null)
+				throw new IllegalArgumentException("url == null");
+			this.url = url;
+			return this;
+		}
+
+		/**
+		 * Sets the URL target of this request.
+		 *
+		 * @throws IllegalArgumentException
+		 *             if {@code url} is not a valid HTTP or HTTPS URL. Avoid
+		 *             this exception by calling {@link HttpUrl#parse}; it
+		 *             returns null for invalid URLs.
+		 */
+		public Builder url(String url) {
+			if (url == null)
+				throw new IllegalArgumentException("url == null");
+
+			// Silently replace websocket URLs with HTTP URLs.
+			if (url.regionMatches(true, 0, "ws:", 0, 3)) {
+				url = "http:" + url.substring(3);
+			} else if (url.regionMatches(true, 0, "wss:", 0, 4)) {
+				url = "https:" + url.substring(4);
+			}
+
+			HttpUrl parsed = HttpUrl.parse(url);
+			if (parsed == null)
+				throw new IllegalArgumentException("unexpected url: " + url);
+			return url(parsed);
+		}
+
+		/**
+		 * Sets the URL target of this request.
+		 *
+		 * @throws IllegalArgumentException
+		 *             if the scheme of {@code url} is not {@code http} or
+		 *             {@code https}.
+		 */
+		public Builder url(URL url) {
+			if (url == null)
+				throw new IllegalArgumentException("url == null");
+			HttpUrl parsed = HttpUrl.get(url);
+			if (parsed == null)
+				throw new IllegalArgumentException("unexpected url: " + url);
+			return url(parsed);
+		}
+
+		/**
+		 * Sets the header named {@code name} to {@code value}. If this request
+		 * already has any headers with that name, they are all replaced.
+		 */
+		public Builder header(String name, String value) {
+			headers.set(name, value);
+			return this;
+		}
+
+		/**
+		 * Adds a header with {@code name} and {@code value}. Prefer this method
+		 * for multiply-valued headers like "Cookie".
+		 *
+		 * <p>
+		 * Note that for some headers including {@code Content-Length} and
+		 * {@code Content-Encoding}, OkHttp may replace {@code value} with a
+		 * header derived from the request body.
+		 */
+		public Builder addHeader(String name, String value) {
+			headers.add(name, value);
+			return this;
+		}
+
+		public Builder removeHeader(String name) {
+			headers.removeAll(name);
+			return this;
+		}
+
+		/** Removes all headers on this builder and adds {@code headers}. */
+		public Builder headers(Headers headers) {
+			this.headers = headers.newBuilder();
+			return this;
+		}
+
+		/**
+		 * Sets this request's {@code Cache-Control} header, replacing any cache
+		 * control headers already present. If {@code cacheControl} doesn't
+		 * define any directives, this clears this request's cache-control
+		 * headers.
+		 */
+		public Builder cacheControl(CacheControl cacheControl) {
+			String value = cacheControl.toString();
+			if (value.isEmpty())
+				return removeHeader("Cache-Control");
+			return header("Cache-Control", value);
+		}
+
+		public Builder get() {
+			return method("GET", null);
+		}
+
+		public Builder head() {
+			return method("HEAD", null);
+		}
+
+		public Builder post(RequestBody body) {
+			return method("POST", body);
+		}
+
+		public Builder delete(RequestBody body) {
+			return method("DELETE", body);
+		}
+
+		public Builder delete() {
+			return delete(RequestBody.create(null, new byte[0]));
+		}
+
+		public Builder put(RequestBody body) {
+			return method("PUT", body);
+		}
+
+		public Builder patch(RequestBody body) {
+			return method("PATCH", body);
+		}
+
+		public Builder method(String method, RequestBody body) {
+			if (method == null || method.length() == 0) {
+				throw new IllegalArgumentException(
+						"method == null || method.length() == 0");
+			}
+			if (body != null && !HttpMethod.permitsRequestBody(method)) {
+				throw new IllegalArgumentException("method " + method
+						+ " must not have a request body.");
+			}
+			if (body == null && HttpMethod.requiresRequestBody(method)) {
+				throw new IllegalArgumentException("method " + method
+						+ " must have a request body.");
+			}
+			this.method = method;
+			this.body = body;
+			return this;
+		}
+
+		/**
+		 * Attaches {@code tag} to the request. It can be used later to cancel
+		 * the request. If the tag is unspecified or null, the request is
+		 * canceled by using the request itself as the tag.
+		 */
+		public Builder tag(Object tag) {
+			this.tag = tag;
+			return this;
+		}
+
+		public Request build() {
+			if (url == null)
+				throw new IllegalStateException("url == null");
+			return new Request(this);
+		}
+	}
 }

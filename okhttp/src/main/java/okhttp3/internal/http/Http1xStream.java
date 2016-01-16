@@ -19,6 +19,8 @@ package okhttp3.internal.http;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.util.logging.Level;
+
 import okhttp3.Headers;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -34,11 +36,11 @@ import okio.Okio;
 import okio.Sink;
 import okio.Source;
 import okio.Timeout;
-
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static okhttp3.internal.Util.checkOffsetAndCount;
 import static okhttp3.internal.http.StatusLine.HTTP_CONTINUE;
-
+import java.util.logging.Level;
+import static okhttp3.internal.Internal.logger;
 /**
  * A socket connection that can be used to send HTTP/1.1 messages. This class strictly enforces the
  * following lifecycle:
@@ -75,6 +77,8 @@ public final class Http1xStream implements HttpStream {
   private HttpEngine httpEngine;
   private int state = STATE_IDLE;
 
+  
+  
   public Http1xStream(StreamAllocation streamAllocation, BufferedSource source, BufferedSink sink) {
     this.streamAllocation = streamAllocation;
     this.source = source;
@@ -179,11 +183,11 @@ public final class Http1xStream implements HttpStream {
     if (state != STATE_OPEN_REQUEST_BODY && state != STATE_READ_RESPONSE_HEADERS) {
       throw new IllegalStateException("state: " + state);
     }
-
+    long t1 = System.currentTimeMillis();
     try {
       while (true) {
         StatusLine statusLine = StatusLine.parse(source.readUtf8LineStrict());
-
+        //logger.log(Level.INFO,"statusLine: "+statusLine.toString());
         Response.Builder responseBuilder = new Response.Builder()
             .protocol(statusLine.protocol)
             .code(statusLine.code)
@@ -192,6 +196,8 @@ public final class Http1xStream implements HttpStream {
 
         if (statusLine.code != HTTP_CONTINUE) {
           state = STATE_OPEN_RESPONSE_BODY;
+          long t2 = System.currentTimeMillis();
+          logger.log(Level.INFO, String.format("status line read: %dms", t2-t1));
           return responseBuilder;
         }
       }
@@ -201,6 +207,7 @@ public final class Http1xStream implements HttpStream {
       exception.initCause(e);
       throw exception;
     }
+    
   }
 
   /** Reads headers or trailers. */
