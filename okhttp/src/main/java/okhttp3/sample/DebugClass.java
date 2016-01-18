@@ -57,6 +57,12 @@ public class DebugClass {
 		// Deserialize HTTP response to concrete type.
 		long t3 = System.currentTimeMillis();
 		ResponseBody body = response.body();
+		long size1 = body.contentLength();
+		String str = body.string();
+		long size2 = str.length();
+		long t5 = System.currentTimeMillis();
+		logger.log(Level.INFO, 
+				String.format("sting time difference:%d, length:%d stringlength:%d",t5-t3,size1, size2) );
 		int nRead;
 		byte[] data = new byte[116384];
 		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -64,6 +70,8 @@ public class DebugClass {
 		  buffer.write(data, 0, nRead);
 		}
 		buffer.flush();
+		
+		
 		long t4 = System.currentTimeMillis()-t3;
 		logger.log(Level.INFO," read byte delay: "+t4);
 		/*Reader charStream = body.charStream();

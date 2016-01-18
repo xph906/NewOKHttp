@@ -196,7 +196,7 @@ public final class Http1xStream implements HttpStream {
 
         if (statusLine.code != HTTP_CONTINUE) {
           state = STATE_OPEN_RESPONSE_BODY;
-          long t2 = System.currentTimeMillis();
+         long t2 = System.currentTimeMillis();
           logger.log(Level.INFO, String.format("status line read: %dms", t2-t1));
           return responseBuilder;
         }

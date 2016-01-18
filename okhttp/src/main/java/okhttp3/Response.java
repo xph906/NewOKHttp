@@ -60,6 +60,7 @@ public final class Response {
     this.networkResponse = builder.networkResponse;
     this.cacheResponse = builder.cacheResponse;
     this.priorResponse = builder.priorResponse;
+    this.body.setUserRequest(this.request);
   }
 
   /**

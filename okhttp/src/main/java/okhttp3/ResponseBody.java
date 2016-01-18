@@ -57,6 +57,9 @@ public abstract class ResponseBody implements Closeable {
   /** Multiple calls to {@link #charStream()} must return the same instance. */
   private Reader reader;
 
+  /* NetProphet field */
+  Request userRequest;
+  
   public abstract MediaType contentType();
 
   /**
@@ -106,7 +109,10 @@ public abstract class ResponseBody implements Closeable {
    * UTF-8.
    */
   public final String string() throws IOException {
-    return new String(bytes(), charset().name());
+	 
+    String rs = new String(bytes(), charset().name());
+    
+    return rs;
   }
 
   private Charset charset() {

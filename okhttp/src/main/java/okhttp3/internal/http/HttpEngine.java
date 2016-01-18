@@ -806,6 +806,7 @@ public final class HttpEngine {
 		userRequest.getRequestTimingANP().setReqWriteEndTimeANP(System.currentTimeMillis());	
 		Response.Builder b = httpStream.readResponseHeaders();
 		long t2 = System.currentTimeMillis();
+		userRequest.getRequestTimingANP().setRespStartTimeANP(t2);
 		Response networkResponse = b.request(networkRequest)
 				.handshake(streamAllocation.connection().handshake())
 				.header(OkHeaders.SENT_MILLIS, Long.toString(sentRequestMillis))
