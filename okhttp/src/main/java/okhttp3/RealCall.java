@@ -90,7 +90,13 @@ public final class RealCall implements Call {
 	}
 
 	public long getEndTimeANP() {
-		return endTimeANP;
+		long accurateEndTime = endTimeANP;
+		for(RequestTimingANP timing : timingsANP){
+			if(timing.getRespEndTimeANP() > accurateEndTime)
+				accurateEndTime = timing.getRespEndTimeANP();
+		}
+		
+		return accurateEndTime;
 	}
 
 	public void setEndTimeANP(long endTimeANP) {
@@ -376,8 +382,9 @@ public final class RealCall implements Call {
 				
 				t5 = System.currentTimeMillis();
 				logger.info(String.format(
-						"HTTPEngine readResponse %d", t5 - t4));
-				engine.getRequest().getRequestTimingANP().setRespEndTimeANP(t5);
+						"HTTPEngine readResponse diff %d", 
+							t5 - engine.getRequest().getRequestTimingANP().getRespStartTimeANP()));
+				//engine.getRequest().getRequestTimingANP().setRespStartTimeANP(t5);
 				timingsANP.add(engine.getRequest().getRequestTimingANP());
 				releaseConnection = false;
 			} catch (RequestException e) {

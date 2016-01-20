@@ -134,7 +134,10 @@ public final class RealConnection implements Connection {
       ConnectionSpecSelector connectionSpecSelector) throws IOException {
     rawSocket.setSoTimeout(readTimeout);
     try {
+    	long t1 = System.currentTimeMillis();
       Platform.get().connectSocket(rawSocket, route.socketAddress(), connectTimeout);
+      	long t2 = System.currentTimeMillis();
+      	route.setHandshakeTimeANP(t2-t1);
     } catch (ConnectException e) {
       throw new ConnectException("Failed to connect to " + route.socketAddress());
     }

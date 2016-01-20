@@ -46,7 +46,24 @@ import okhttp3.internal.io.RealConnection;
  * packages. The only implementation of this interface is in {@link OkHttpClient}.
  */
 public abstract class Internal {
+	public static class BriefFormatter extends Formatter 
+	  {   
+	      public BriefFormatter() { super(); }
+
+	      @Override 
+	      public String format(final LogRecord record) 
+	      {
+	          return record.getMessage()+" \n";
+	      }   
+	  }
   public static final Logger logger = Logger.getLogger(OkHttpClient.class.getName());
+  static {
+	  logger.setLevel(Level.WARNING);  
+	  Handler conHdlr = new ConsoleHandler();
+	  conHdlr.setFormatter(new BriefFormatter());
+	  logger.setUseParentHandlers(false);
+	  logger.addHandler(conHdlr);
+  }
   
   public static void initializeInstanceForTests() {
     // Needed in tests to ensure that the instance is actually pointing to something.

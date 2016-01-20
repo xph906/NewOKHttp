@@ -37,23 +37,18 @@ public class DebugClass {
 		String login;
 		int contributions;
 	}
-
-	public static void main(String... args) throws Exception {
+	
+	public void makeRequest(String url) throws Exception{
 		OkHttpClient client = new OkHttpClient().newBuilder()
-				.addInterceptor(new LoggingInterceptor("ApplicationInterceptor"))
-				.addNetworkInterceptor(new LoggingInterceptor("NetworkInterceptor"))
 				.build();
 		
-
-		logger.log(Level.INFO, "start to prepare info");
 		// Create request for remote resource.
-		Request request = new Request.Builder().url(ENDPOINT).build();
+		Request request = new Request.Builder().url(url).build();
 
-		logger.log(Level.INFO, "start to send requests");
 		// Execute the request and retrieve the response.
 		Call c = client.newCall(request);
 		Response response = c.execute();
-	
+		logger.log(Level.WARNING, "Load url: "+url);
 		// Deserialize HTTP response to concrete type.
 		long t3 = System.currentTimeMillis();
 		ResponseBody body = response.body();
@@ -61,66 +56,61 @@ public class DebugClass {
 		String str = body.string();
 		long size2 = str.length();
 		long t5 = System.currentTimeMillis();
-		logger.log(Level.INFO, 
-				String.format("sting time difference:%d, length:%d stringlength:%d",t5-t3,size1, size2) );
-		int nRead;
-		byte[] data = new byte[116384];
-		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-		while ((nRead = body.byteStream().read(data, 0, data.length)) != -1) {
-		  buffer.write(data, 0, nRead);
-		}
-		buffer.flush();
-		
-		
-		long t4 = System.currentTimeMillis()-t3;
-		logger.log(Level.INFO," read byte delay: "+t4);
-		/*Reader charStream = body.charStream();
-		
-		List<Contributor> contributors = GSON.fromJson(charStream,
-				CONTRIBUTORS.getType());
-		body.close();
-		logger.log(Level.INFO, "received body");
-
-		// Sort list by the most contributions.
-		Collections.sort(contributors, new Comparator<Contributor>() {
-			@Override
-			public int compare(Contributor c1, Contributor c2) {
-				return c2.contributions - c1.contributions;
-			}
-		});
-
-		// Output list of contributors.
-		for (Contributor contributor : contributors) {
-			System.out.println(contributor.login + ": "
-					+ contributor.contributions);
-		}*/
-		
+		logger.log(Level.WARNING, 
+				String.format("Response length before string():%d length:%d",size1, size2) );
 		if(c instanceof RealCall){
 			long t1 = ((RealCall)c).getStartTimeANP();
 			long t2 = ((RealCall)c).getEndTimeANP();
 			List<RequestTimingANP> timingsANP = ((RealCall)c).getTimingsANP();
 			List<String> urlsANP = ((RealCall)c).getUrlsANP();
-			logger.log(Level.INFO, 
-					String.format("Start:%d End:%d Overall delay: %d", t1,t2,t2-t1));
+			logger.log(Level.WARNING, 
+					String.format("Overall delay: %d", t2-t1));
 			if(timingsANP.size() != urlsANP.size()){
 				throw new Exception("the sizes of urlsANP and timingsANP are not the same ");
 			}
 			Iterator<String> urlIter = urlsANP.iterator();
 			Iterator<RequestTimingANP> timingIter = timingsANP.iterator();
 			while(urlIter.hasNext()){
-				String url = urlIter.next();
+				String curURL = urlIter.next();
 				RequestTimingANP timing = timingIter.next();
 				long dnsDelay = timing.getDnsEndTimeANP() - timing.getDnsStartTimeANP();
 				long connSetupDelay = timing.getConnSetupEndTimeANP() - timing.getConnSetupStartTimeANP();
 				long reqWriteDelay = timing.getReqWriteEndTimeANP() - timing.getReqWriteStartTimeANP();
 				long respDelay = timing.getRespEndTimeANP() - timing.getReqWriteStartTimeANP();
+				long TTFB = timing.getRespStartTimeANP() - timing.getReqWriteEndTimeANP();
+				long respTransDelay = timing.getRespEndTimeANP() - timing.getRespStartTimeANP();
 				long overallDelay = timing.getRespEndTimeANP() - timing.getReqStartTimeANP();
-				
-				logger.log(Level.INFO,
-						String.format("overall:%dms dns:%dms, connSetup:%dms, reqwrite:%dms resp:%dms for URL:%s", 
-								overallDelay, dnsDelay, connSetupDelay, reqWriteDelay, respDelay, url));
+				logger.log(Level.WARNING,
+						String.format(
+								"accurateRespTime:%b overall:%dms dns:%dms, connSetup:%dms (handshake:%dms), " + 
+										"server:%dms, resp:%dms (1.reqwrite:%dms 2.TTFB:%dms, 3.respTrans:%dms ) \n for URL:%s\n", 
+								timing.isAccurateEndTimeANP(), overallDelay, dnsDelay, connSetupDelay, 
+								timing.getHandshakeTimeANP(), timing.getEstimatedServerDelay(), respDelay, reqWriteDelay,  TTFB, respTransDelay, curURL));
 			}
 		}
+	}
+
+	public static void main(String... args) throws Exception {
+		DebugClass client = new DebugClass();
+		client.makeRequest(ENDPOINT);
+		
+		String url = "http://52.32.112.201:3000/get-mini-file";
+		client.makeRequest(url);
+		url = "http://52.32.112.201:3000/get-small-file";
+		client.makeRequest(url);
+		url = "http://52.32.112.201:3000/get-medium-file";
+		client.makeRequest(url);
+		url = "http://52.32.112.201:3000/get-large-file";
+		client.makeRequest(url);
+		
+		url = "http://52.32.112.201:3000/sleep-50";
+		client.makeRequest(url);
+		url = "http://52.32.112.201:3000/sleep-200";
+		client.makeRequest(url);
+		url = "http://52.32.112.201:3000/sleep-500";
+		client.makeRequest(url);
+		url = "http://52.32.112.201:3000/sleep-2000";
+		client.makeRequest(url);
 	}
 
 	private DebugClass() {

@@ -686,6 +686,11 @@ public final class HttpEngine {
 				responseCache.trackConditionalCacheHit();
 				responseCache.update(cacheResponse, stripBody(userResponse));
 				userResponse = unzip(userResponse);
+				
+				//update responseBody's request
+				if(userResponse.body() != null){
+					userResponse.body().setUserRequest(userRequest);
+				}
 				return;
 			} else {
 				closeQuietly(cacheResponse.body());
@@ -701,6 +706,12 @@ public final class HttpEngine {
 			maybeCache();
 			userResponse = unzip(cacheWritingResponse(storeRequest,
 					userResponse));
+		}
+		
+		userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
+		if(userResponse.body() != null){
+			userResponse.body().setUserRequest(userRequest);
+			logger.log(Level.INFO, "successfully set the request into responsebody");
 		}
 	}
 

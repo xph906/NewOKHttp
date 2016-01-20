@@ -37,6 +37,9 @@ public final class Route {
   final Address address;
   final Proxy proxy;
   final InetSocketAddress inetSocketAddress;
+  
+  /*NetProphet field*/
+  private long handshakeTimeANP;
 
   public Route(Address address, Proxy proxy, InetSocketAddress inetSocketAddress) {
     if (address == null) {
@@ -51,8 +54,20 @@ public final class Route {
     this.address = address;
     this.proxy = proxy;
     this.inetSocketAddress = inetSocketAddress;
+    
+    /*NetProphet Init*/
+    this.handshakeTimeANP = 0;
+  }
+  
+  /*NetProphet Getter and Setter*/
+  public long getHandshakeTimeANP() {
+	return handshakeTimeANP;
   }
 
+  public void setHandshakeTimeANP(long handshakeTimeANP) {
+	this.handshakeTimeANP = handshakeTimeANP;
+  }
+  
   public Address address() {
     return address;
   }

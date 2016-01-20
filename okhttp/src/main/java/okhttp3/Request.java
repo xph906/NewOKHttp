@@ -40,6 +40,7 @@ public final class Request {
 	private volatile CacheControl cacheControl; // Lazily initialized.
 
 	/* NetProphet Class */
+	
 	public class RequestTimingANP {
 		private long reqStartTimeANP;
 		private long dnsStartTimeANP;
@@ -52,12 +53,14 @@ public final class Request {
 		private long reqWriteEndTimeANP;
 		private long respStartTimeANP;
 		private long respEndTimeANP;
-		private boolean useCacheANP; 
+		private long handshakeTimeANP;
+		private boolean useCacheANP;
+		private boolean isAccurateEndTimeANP;
+		private boolean isSuccessfulANP; // set to false only when retry also
+											// failed
+		private String errorString;
 		
-		private boolean isSuccessfulANP; // set to false only when retry also failed
-    	private String errorString;
-    	
-    RequestTimingANP() {
+		RequestTimingANP() {
 			/* Initialize NetProphet Fields */
 			this.reqStartTimeANP = 0;
 			this.dnsEndTimeANP = 0;
@@ -71,26 +74,66 @@ public final class Request {
 			this.reqWriteStartTimeANP = 0;
 			this.respStartTimeANP = 0;
 			this.respEndTimeANP = 0;
+			this.handshakeTimeANP = 0;
 			this.useCacheANP = false;
 			this.isSuccessfulANP = true;
+			this.isAccurateEndTimeANP = false;
+
 			errorString = "";
+		}
+		
+		/* Rounded by 10ms
+		 * ReturnValue:
+		 *  -1: negative TTFB
+		 *  -2: handshake is zero 
+		 */
+		public int getEstimatedServerDelay(){
+			int result = 0;
+			long TTFB = this.respStartTimeANP - this.reqWriteEndTimeANP;
+			if(TTFB <= 0)
+				return -1;
+			if(this.handshakeTimeANP != 0)
+				result = (int)(TTFB - this.handshakeTimeANP); 
+			else
+				return -2;
+			
+			if(result < 0)
+				return 0;
+			else
+				return result/10*10;
 		}
 
 		public boolean isSuccessfulANP() {
-		return isSuccessfulANP;
-	}
+			return isSuccessfulANP;
+		}
 
-	public void setSuccessfulANP(boolean isSuccessfulANP) {
-		this.isSuccessfulANP = isSuccessfulANP;
-	}
+		public boolean isAccurateEndTimeANP() {
+			return isAccurateEndTimeANP;
+		}
 
-	public String getErrorString() {
-		return errorString;
-	}
+		public void setAccurateEndTimeANP(boolean isAccurateEndTimeANP) {
+			this.isAccurateEndTimeANP = isAccurateEndTimeANP;
+		}
 
-	public void setErrorString(String errorString) {
-		this.errorString = errorString;
-	}
+		public long getHandshakeTimeANP() {
+			return handshakeTimeANP;
+		}
+
+		public void setHandshakeTimeANP(long handshakeTimeANP) {
+			this.handshakeTimeANP = handshakeTimeANP;
+		}
+
+		public void setSuccessfulANP(boolean isSuccessfulANP) {
+			this.isSuccessfulANP = isSuccessfulANP;
+		}
+
+		public String getErrorString() {
+			return errorString;
+		}
+
+		public void setErrorString(String errorString) {
+			this.errorString = errorString;
+		}
 
 		/* NetProphet Getters and Setters */
 		public long getReqStartTimeANP() {
@@ -201,7 +244,8 @@ public final class Request {
 		/* NetProphet Initialization */
 		requestTimingANP = new RequestTimingANP();
 	}
-    /* NetProphet Getter and Setter */
+
+	/* NetProphet Getter and Setter */
 	public RequestTimingANP getRequestTimingANP() {
 		return requestTimingANP;
 	}

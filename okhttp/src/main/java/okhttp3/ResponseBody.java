@@ -26,6 +26,8 @@ import okio.Buffer;
 import okio.BufferedSource;
 
 import static okhttp3.internal.Util.UTF_8;
+import java.util.logging.Level;
+import static okhttp3.internal.Internal.logger;
 
 /**
  * A one-shot stream from the origin server to the client application with the raw bytes of the
@@ -52,6 +54,12 @@ import static okhttp3.internal.Util.UTF_8;
  * re-read the bytes of the response. Use this one shot to read the entire response into memory with
  * {@link #bytes()} or {@link #string()}. Or stream the response with either {@link #source()},
  * {@link #byteStream()}, or {@link #charStream()}.
+ *
+ * Timing:
+ *  1. text: string()
+ *  2. image: bitmap()
+ *  3. binary: TODO
+ *  4. large contents: TODO
  */
 public abstract class ResponseBody implements Closeable {
   /** Multiple calls to {@link #charStream()} must return the same instance. */
@@ -60,7 +68,15 @@ public abstract class ResponseBody implements Closeable {
   /* NetProphet field */
   Request userRequest;
   
-  public abstract MediaType contentType();
+  public Request getUserRequest() {
+	return userRequest;
+  }
+
+  public void setUserRequest(Request userRequest) {
+	this.userRequest = userRequest;
+  }
+
+public abstract MediaType contentType();
 
   /**
    * Returns the number of bytes in that will returned by {@link #bytes}, or {@link #byteStream}, or
@@ -109,9 +125,12 @@ public abstract class ResponseBody implements Closeable {
    * UTF-8.
    */
   public final String string() throws IOException {
-	 
     String rs = new String(bytes(), charset().name());
-    
+    if(userRequest != null){
+    	userRequest.getRequestTimingANP().setRespEndTimeANP(System.currentTimeMillis());
+    	userRequest.getRequestTimingANP().setAccurateEndTimeANP(true);
+    	logger.log(Level.INFO, "store resp end time at string()");
+    }
     return rs;
   }
 

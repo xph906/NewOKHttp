@@ -224,6 +224,8 @@ public final class StreamAllocation {
         connectionRetryEnabled);
     routeDatabase().connected(newConnection.route());
     long t4 = System.currentTimeMillis();
+    if(newConnection.route().getHandshakeTimeANP() != 0)
+    	request.getRequestTimingANP().setHandshakeTimeANP(newConnection.route().getHandshakeTimeANP());
     request.getRequestTimingANP().setConnSetupEndTimeANP(t4);
     logger.log(Level.INFO, 
     		String.format("findConnection:   2. create new connection: %d", t4-t3));
